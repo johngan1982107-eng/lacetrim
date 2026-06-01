@@ -454,7 +454,6 @@
                         <textarea name="spec" id="spec" class="form-control" rows="4" placeholder="Please type target width, expected yards, GRS/BCI request..."></textarea>
                     </div>
                     <button type="submit" class="btn-submit">Submit Factory RFQ</button>
-                    <p id="rfqMsg" class="rfq-msg" style="display:none;margin-top:14px;padding:10px 12px;font-size:14px;font-weight:600;border-radius:4px;text-align:center;"></p>
                 </form>
                 <script>
                 (function() {
@@ -494,20 +493,30 @@
                     document.addEventListener('change', function(e){ if(e.target.setCustomValidity) e.target.setCustomValidity(''); }, true);
 
                     // ---- 2. Submit handler ----
-                    var form = document.getElementById('inquiryForm');
-                    var btn  = form.querySelector('.btn-submit');
-                    var msg  = document.getElementById('rfqMsg');
+                    var form  = document.getElementById('inquiryForm');
+                    var btn   = form.querySelector('.btn-submit');
+                    var toast = document.getElementById('rfqToast');
+                    var toastText  = toast.querySelector('.rfq-toast-text');
+                    var toastClose = toast.querySelector('.rfq-toast-close');
+                    var hideTimer = null;
+
+                    function hideToast(){
+                        toast.classList.remove('show');
+                        if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
+                    }
+                    toastClose.addEventListener('click', hideToast);
 
                     function showMsg(type, text){
-                        msg.style.display = 'block';
-                        if(type === 'ok'){
-                            msg.style.color      = '#1e7d3a';
-                            msg.style.background = '#e6f4ea';
-                        } else {
-                            msg.style.color      = '#a8201a';
-                            msg.style.background = '#fbeae5';
-                        }
-                        msg.textContent = text;
+                        toast.classList.remove('ok', 'err');
+                        toast.classList.add(type === 'ok' ? 'ok' : 'err');
+                        toastText.textContent = text;
+                        // 重启动画
+                        toast.classList.remove('show');
+                        // eslint-disable-next-line no-unused-expressions
+                        void toast.offsetWidth;
+                        toast.classList.add('show');
+                        if(hideTimer) clearTimeout(hideTimer);
+                        hideTimer = setTimeout(hideToast, 5000);
                     }
 
                     form.addEventListener('submit', function(e) {
@@ -530,8 +539,6 @@
                             }
                         };
 
-                        msg.style.display = 'none';
-                        msg.textContent = '';
                         btn.disabled = true;
                         btn.textContent = 'Sending...';
 
@@ -622,6 +629,51 @@
     <a href="https://wa.me/447549881294" class="whatsapp-float" target="_blank" rel="noopener noreferrer">
         WhatsApp Chat &rarr;
     </a>
+
+    <!-- Floating Toast (auto-dismiss 5s) -->
+    <style>
+        .rfq-toast{
+            position:fixed;top:24px;right:24px;z-index:99999;
+            min-width:280px;max-width:380px;
+            padding:16px 44px 16px 52px;
+            background:#ffffff;color:#222222;
+            border-radius:10px;
+            box-shadow:0 12px 32px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08);
+            font-size:14px;font-weight:500;line-height:1.5;
+            opacity:0;transform:translateX(120%);
+            transition:opacity .3s ease,transform .35s cubic-bezier(.22,1,.36,1);
+            pointer-events:none;
+        }
+        .rfq-toast.show{opacity:1;transform:translateX(0);pointer-events:auto;}
+        .rfq-toast.ok{border-left:4px solid #1e7d3a;}
+        .rfq-toast.err{border-left:4px solid #c0392b;}
+        .rfq-toast-icon{
+            position:absolute;left:16px;top:50%;transform:translateY(-50%);
+            width:24px;height:24px;border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            color:#ffffff;font-size:14px;font-weight:700;line-height:1;
+        }
+        .rfq-toast.ok .rfq-toast-icon{background:#1e7d3a;}
+        .rfq-toast.ok .rfq-toast-icon::before{content:"✓";}
+        .rfq-toast.err .rfq-toast-icon{background:#c0392b;}
+        .rfq-toast.err .rfq-toast-icon::before{content:"!";}
+        .rfq-toast-close{
+            position:absolute;right:8px;top:8px;
+            width:26px;height:26px;
+            background:transparent;border:none;cursor:pointer;
+            color:#999999;font-size:20px;line-height:1;
+            border-radius:6px;transition:all .15s;
+        }
+        .rfq-toast-close:hover{color:#222222;background:rgba(0,0,0,.06);}
+        @media (max-width:480px){
+            .rfq-toast{top:16px;left:16px;right:16px;max-width:none;}
+        }
+    </style>
+    <div id="rfqToast" class="rfq-toast" role="alert" aria-live="polite">
+        <span class="rfq-toast-icon" aria-hidden="true"></span>
+        <span class="rfq-toast-text"></span>
+        <button type="button" class="rfq-toast-close" aria-label="Close">&times;</button>
+    </div>
 
 </body>
 </html>
