@@ -494,22 +494,32 @@
 
                     // ---- 2. Submit handler ----
                     var form  = document.getElementById('inquiryForm');
+                    if(!form){ console.error('[RFQ] Form #inquiryForm not found'); return; }
                     var btn   = form.querySelector('.btn-submit');
-                    var toast = document.getElementById('rfqToast');
-                    var toastText  = toast.querySelector('.rfq-toast-text');
-                    var toastClose = toast.querySelector('.rfq-toast-close');
+                    if(!btn){ console.error('[RFQ] Button .btn-submit not found'); return; }
                     var hideTimer = null;
 
+                    function getToast(){
+                        return document.getElementById('rfqToast');
+                    }
+
                     function hideToast(){
+                        var toast = getToast();
+                        if(!toast) return;
                         toast.classList.remove('show');
                         if(hideTimer){ clearTimeout(hideTimer); hideTimer = null; }
                     }
-                    toastClose.addEventListener('click', hideToast);
+
+                    var toastCloseEl = document.getElementById('rfqToastClose');
+                    if(toastCloseEl) toastCloseEl.addEventListener('click', hideToast);
 
                     function showMsg(type, text){
+                        var toast = getToast();
+                        if(!toast) return;
+                        var toastText = toast.querySelector('.rfq-toast-text');
                         toast.classList.remove('ok', 'err');
                         toast.classList.add(type === 'ok' ? 'ok' : 'err');
-                        toastText.textContent = text;
+                        if(toastText) toastText.textContent = text;
                         // 重启动画
                         toast.classList.remove('show');
                         // eslint-disable-next-line no-unused-expressions
@@ -672,7 +682,7 @@
     <div id="rfqToast" class="rfq-toast" role="alert" aria-live="polite">
         <span class="rfq-toast-icon" aria-hidden="true"></span>
         <span class="rfq-toast-text"></span>
-        <button type="button" class="rfq-toast-close" aria-label="Close">&times;</button>
+        <button type="button" id="rfqToastClose" class="rfq-toast-close" aria-label="Close">&times;</button>
     </div>
 
 </body>
