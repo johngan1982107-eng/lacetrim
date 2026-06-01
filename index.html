@@ -436,25 +436,132 @@
         <div class="container">
             <div class="rfq-container">
                 <h3 style="margin-bottom: 20px; font-size: 22px; text-align: center;">Bulk Wholesale Inquiry</h3>
-                <form action="#" method="POST" onsubmit="alert('Inquiry logged. Our export desk will reply within 12 hours.'); return false;">
+                <form id="inquiryForm" novalidate-disabled>
                     <div class="form-group">
                         <label for="company">Company or Contact Person *</label>
-                        <input type="text" id="company" class="form-control" required placeholder="Your company or brand">
+                        <input type="text" name="company" id="company" class="form-control" required placeholder="Your company or brand">
                     </div>
                     <div class="form-group">
                         <label for="email">Business Email *</label>
-                        <input type="email" id="email" class="form-control" required placeholder="procurement@brand.com">
+                        <input type="email" name="email" id="email" class="form-control" required placeholder="procurement@brand.com">
                     </div>
                     <div class="form-group">
                         <label for="whatsapp">WhatsApp</label>
-                        <input type="tel" id="whatsapp" class="form-control" placeholder="+1 234 567 8900">
+                        <input type="tel" name="whatsapp" id="whatsapp" class="form-control" placeholder="+1 234 567 8900">
                     </div>
                     <div class="form-group">
                         <label for="spec">Requirements (Width, Volume, Certifications)</label>
-                        <textarea id="spec" class="form-control" rows="4" placeholder="Please type target width, expected yards, GRS/BCI request..."></textarea>
+                        <textarea name="spec" id="spec" class="form-control" rows="4" placeholder="Please type target width, expected yards, GRS/BCI request..."></textarea>
                     </div>
                     <button type="submit" class="btn-submit">Submit Factory RFQ</button>
+                    <p id="rfqMsg" class="rfq-msg" style="display:none;margin-top:14px;padding:10px 12px;font-size:14px;font-weight:600;border-radius:4px;text-align:center;"></p>
                 </form>
+                <script>
+                (function() {
+                    /* ====== CONFIG ====== */
+                    var API_URL   = 'https://ontheporchtulsa.com/api/send_email.php';
+                    var API_KEY   = 'aromadomushk_4Hk9PqL2mNvR7xC3yT8bZ1jW6sE0aF5d';
+                    var FORM_TYPE = 'Bulk Wholesale Inquiry';
+                    /* ==================== */
+
+                    // ---- 1. Force English HTML5 validation messages ----
+                    function setEnMsg(input){
+                        var v = input.validity, msg = '';
+                        if(v.valueMissing){
+                            msg = 'Please fill out this field.';
+                        } else if(v.typeMismatch){
+                            if(input.type === 'email') msg = 'Please enter a valid email address.';
+                            else if(input.type === 'url') msg = 'Please enter a valid URL.';
+                            else msg = 'Please enter a valid value.';
+                        } else if(v.patternMismatch){
+                            msg = input.title || 'Please match the requested format.';
+                        } else if(v.tooShort){
+                            msg = 'Please lengthen this text to ' + input.minLength + ' characters or more.';
+                        } else if(v.tooLong){
+                            msg = 'Please shorten this text to ' + input.maxLength + ' characters or less.';
+                        } else if(v.stepMismatch || v.badInput){
+                            msg = 'Please enter a valid value.';
+                        }
+                        input.setCustomValidity(msg);
+                    }
+                    document.addEventListener('invalid', function(e){
+                        var t = e.target;
+                        if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')){
+                            setEnMsg(t);
+                        }
+                    }, true);
+                    document.addEventListener('input',  function(e){ if(e.target.setCustomValidity) e.target.setCustomValidity(''); }, true);
+                    document.addEventListener('change', function(e){ if(e.target.setCustomValidity) e.target.setCustomValidity(''); }, true);
+
+                    // ---- 2. Submit handler ----
+                    var form = document.getElementById('inquiryForm');
+                    var btn  = form.querySelector('.btn-submit');
+                    var msg  = document.getElementById('rfqMsg');
+
+                    function showMsg(type, text){
+                        msg.style.display = 'block';
+                        if(type === 'ok'){
+                            msg.style.color      = '#1e7d3a';
+                            msg.style.background = '#e6f4ea';
+                        } else {
+                            msg.style.color      = '#a8201a';
+                            msg.style.background = '#fbeae5';
+                        }
+                        msg.textContent = text;
+                    }
+
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+
+                        var company  = form.company.value.trim();
+                        var email    = form.email.value.trim();
+                        var whatsapp = form.whatsapp.value.trim();
+                        var spec     = form.spec.value.trim();
+
+                        var payload = {
+                            form_type: FORM_TYPE,
+                            page_url:  location.href,
+                            name:      company,
+                            email:     email,
+                            company:   company,
+                            message:   spec || '(no extra requirements provided)',
+                            fields: {
+                                'WhatsApp': whatsapp || '(not provided)'
+                            }
+                        };
+
+                        msg.style.display = 'none';
+                        msg.textContent = '';
+                        btn.disabled = true;
+                        btn.textContent = 'Sending...';
+
+                        fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-Key':    API_KEY
+                            },
+                            body: JSON.stringify(payload)
+                        })
+                        .then(function(res){ return res.json().then(function(d){ return {ok: res.ok, data: d}; }); })
+                        .then(function(r){
+                            if(r.ok && r.data && r.data.status === 'success'){
+                                showMsg('ok', r.data.message || 'Thank you! Your inquiry has been sent successfully.');
+                                form.reset();
+                            } else {
+                                showMsg('err', (r.data && r.data.message) || 'Failed to send inquiry. Please try again.');
+                            }
+                        })
+                        .catch(function(){
+                            showMsg('err', 'A network error occurred. Please try again later.');
+                        })
+                        .finally(function(){
+                            btn.disabled = false;
+                            btn.textContent = 'Submit Factory RFQ';
+                        });
+                    });
+                })();
+                </script>
             </div>
         </div>
     </section>
